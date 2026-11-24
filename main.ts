@@ -2,7 +2,7 @@
 // The entry itself is the post on X; all this program does is hand in the
 // post's address by copying POST.json into the grader's output directory.
 
-import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 // Where the repository lives and where the result must land. The grader sets
@@ -17,5 +17,14 @@ if (!existsSync(source)) {
 }
 
 mkdirSync(outputDir, { recursive: true });
-copyFileSync(source, join(outputDir, "POST.json"));
-console.log("POST.json copied to the output directory.");
+const destination = join(outputDir, "POST.json");
+copyFileSync(source, destination);
+
+// Read the copy back and compare it with the source, byte for byte: a
+// truncated or corrupted hand-in would be graded as the wrong post address.
+const handedIn = readFileSync(destination);
+if (!handedIn.equals(readFileSync(source))) {
+  console.error("POST.json in the output directory does not match the source — hand-in failed.");
+  process.exit(1);
+}
+console.log(`POST.json copied to the output directory (${handedIn.length} bytes, verified identical).`);
